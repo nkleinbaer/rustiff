@@ -82,9 +82,9 @@ pub fn parse_ifd(bytes: &[u8], offset: u32, byte_order: ByteOrder) -> io::Result
     let n_fields = get_n_fields(&bytes, offset, byte_order)?;
     let next_ifd_offset = get_next_ifd_offset(&bytes, offset, n_fields, byte_order)?;
 
-    return Ok(IFD {
+    Ok(IFD {
         start_offset: offset,
         nfields: n_fields,
         next_ifd_offset: next_ifd_offset,
-    });
+    })
 }
