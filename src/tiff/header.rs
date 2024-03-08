@@ -66,21 +66,14 @@ pub fn parse_tiff_header(bytes: &[u8]) -> io::Result<TiffHeader> {
         ));
     }
 
-    let byte_order = match get_byte_order(&bytes) {
-        Ok(byte_order) => byte_order,
-        Err(e) => return Err(e),
-    };
+    let byte_order = get_byte_order(&bytes)?;
 
-    match check_magic_bytes(&bytes, &byte_order) {
-        Ok(_) => (),
-        Err(e) => return Err(e),
-    };
+    check_magic_bytes(&bytes, &byte_order)?;
 
-    match get_ifd_offset(&bytes, &byte_order) {
-        Ok(ifd_offset) => Ok(TiffHeader {
-            byte_order: byte_order,
-            ifd_offset: ifd_offset,
-        }),
-        Err(e) => return Err(e),
-    }
+    let ifd_offset = get_ifd_offset(&bytes, &byte_order)?;
+
+    Ok(TiffHeader {
+        byte_order: byte_order,
+        ifd_offset: ifd_offset,
+    })
 }

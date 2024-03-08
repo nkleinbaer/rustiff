@@ -79,15 +79,8 @@ fn get_next_ifd_offset(
 }
 
 pub fn parse_ifd(bytes: &[u8], offset: u32, byte_order: ByteOrder) -> io::Result<IFD> {
-    let n_fields = match get_n_fields(&bytes, offset, byte_order) {
-        Ok(n_fields) => n_fields,
-        Err(e) => return Err(e),
-    };
-
-    let next_ifd_offset = match get_next_ifd_offset(&bytes, offset, n_fields, byte_order) {
-        Ok(next_ifd_offset) => next_ifd_offset,
-        Err(e) => return Err(e),
-    };
+    let n_fields = get_n_fields(&bytes, offset, byte_order)?;
+    let next_ifd_offset = get_next_ifd_offset(&bytes, offset, n_fields, byte_order)?;
 
     return Ok(IFD {
         start_offset: offset,
