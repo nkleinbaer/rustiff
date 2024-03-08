@@ -48,7 +48,7 @@ Byte order is: {}
 First IFD is at offset: {:#010x}
 First IFD contains {} fields
 Next IFD is at offset: {:#010x}",
-        header.byte_order, header.ifd_offset, ifd.nfields, ifd.next_ifd_offset
+        header.byte_order, header.ifd_offset, ifd.n_fields, ifd.next_ifd_offset
     )
 }
 

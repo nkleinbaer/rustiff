@@ -7,7 +7,7 @@ use crate::utils::ByteOrder;
 
 pub struct IFD {
     start_offset: u32,
-    pub nfields: u16,
+    pub n_fields: u16,
     pub next_ifd_offset: u32,
 }
 
@@ -84,7 +84,7 @@ pub fn parse_ifd(bytes: &[u8], offset: u32, byte_order: ByteOrder) -> io::Result
 
     Ok(IFD {
         start_offset: offset,
-        nfields: n_fields,
-        next_ifd_offset: next_ifd_offset,
+        n_fields,
+        next_ifd_offset,
     })
 }

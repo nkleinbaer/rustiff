@@ -73,7 +73,7 @@ pub fn parse_tiff_header(bytes: &[u8]) -> io::Result<TiffHeader> {
     let ifd_offset = get_ifd_offset(&bytes, &byte_order)?;
 
     Ok(TiffHeader {
-        byte_order: byte_order,
-        ifd_offset: ifd_offset,
+        byte_order,
+        ifd_offset,
     })
 }
