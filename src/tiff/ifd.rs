@@ -3,7 +3,7 @@ use std::{
     u32,
 };
 
-use crate::utils::ByteOrder;
+use crate::tiff::header::ByteOrder;
 
 pub struct IFD {
     start_offset: u32,
