@@ -1,4 +1,4 @@
-use std::io::{self, Error, ErrorKind};
+use crate::tiff::error::TiffErrorKind;
 
 use std::fmt;
 
@@ -22,71 +22,42 @@ pub struct TiffHeader {
     pub ifd_offset: u32,
 }
 
-fn get_byte_order(bytes: &[u8]) -> io::Result<ByteOrder> {
-    if bytes.len() < 2 {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Not enough bytes to determine endianness",
-        ));
-    }
-
-    match bytes[0..2] {
+fn get_byte_order(header_bytes: &[u8; 8]) -> Result<ByteOrder, TiffErrorKind> {
+    match header_bytes[0..2] {
         [0x49, 0x49] => Ok(ByteOrder::LittleEndian),
         [0x4D, 0x4D] => Ok(ByteOrder::BigEndian),
-        _ => Err(Error::new(
-            ErrorKind::InvalidData,
-            "Invalid endianness bytes",
-        )),
+        _ => Err(TiffErrorKind::InvalidByteOrder),
     }
 }
 
-fn check_magic_bytes(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<bool> {
-    if bytes.len() < 4 {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Not enough bytes to check magic_bytes",
-        ));
-    }
-
-    match bytes[2..4] {
+fn check_magic_bytes(header_bytes: &[u8; 8], byte_order: ByteOrder) -> Result<bool, TiffErrorKind> {
+    match header_bytes[2..4] {
         [0x2a, 0x00] if matches!(byte_order, ByteOrder::LittleEndian) => Ok(true),
         [0x00, 0x2a] if matches!(byte_order, ByteOrder::BigEndian) => Ok(true),
-        _ => Err(Error::new(
-            ErrorKind::InvalidData,
-            "Invalid endianness bytes",
-        )),
+        _ => Err(TiffErrorKind::InvalidMagicBytes),
     }
 }
 
-fn get_ifd_offset(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<u32> {
-    if bytes.len() < 8 {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Not enough bytes to get first IFD offset",
-        ));
-    }
-
-    let ifd_offset: [u8; 4] = bytes[4..8].try_into().unwrap();
+fn get_ifd_offset(header_bytes: &[u8; 8], byte_order: ByteOrder) -> u32 {
+    let ifd_offset: [u8; 4] = header_bytes[4..8].try_into().unwrap();
 
     match byte_order {
-        ByteOrder::LittleEndian => Ok(u32::from_le_bytes(ifd_offset)),
-        ByteOrder::BigEndian => Ok(u32::from_be_bytes(ifd_offset)),
+        ByteOrder::LittleEndian => u32::from_le_bytes(ifd_offset),
+        ByteOrder::BigEndian => u32::from_be_bytes(ifd_offset),
     }
 }
 
-pub fn parse_tiff_header(bytes: &[u8]) -> io::Result<TiffHeader> {
-    if bytes.len() < 8 {
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Not enough bytes in tiff header",
-        ));
-    }
+pub fn parse_tiff_header(bytes: &[u8]) -> Result<TiffHeader, TiffErrorKind> {
+    let header_bytes: &[u8; 8] = match bytes[0..8].try_into() {
+        Ok(bytes) => bytes,
+        Err(_) => return Err(TiffErrorKind::InvalidHeader),
+    };
 
-    let byte_order = get_byte_order(&bytes)?;
+    let byte_order = get_byte_order(header_bytes)?;
 
-    check_magic_bytes(&bytes, &byte_order)?;
+    check_magic_bytes(header_bytes, byte_order)?;
 
-    let ifd_offset = get_ifd_offset(&bytes, &byte_order)?;
+    let ifd_offset = get_ifd_offset(header_bytes, byte_order);
 
     Ok(TiffHeader {
         byte_order,

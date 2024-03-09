@@ -30,7 +30,7 @@ fn read_tiff(file_path: &str) {
     let header = match parse_tiff_header(&bytes) {
         Ok(header) => header,
         Err(e) => {
-            eprintln!("Invalid tiff: {}", e);
+            eprintln!("Invalid tiff: {:#?}", e);
             exit(1);
         }
     };
