@@ -22,7 +22,7 @@ pub struct TiffHeader {
     pub ifd_offset: u32,
 }
 
-pub fn get_byte_order(bytes: &[u8]) -> io::Result<ByteOrder> {
+fn get_byte_order(bytes: &[u8]) -> io::Result<ByteOrder> {
     if bytes.len() < 2 {
         return Err(Error::new(
             ErrorKind::InvalidData,
@@ -40,7 +40,7 @@ pub fn get_byte_order(bytes: &[u8]) -> io::Result<ByteOrder> {
     }
 }
 
-pub fn check_magic_bytes(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<bool> {
+fn check_magic_bytes(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<bool> {
     if bytes.len() < 4 {
         return Err(Error::new(
             ErrorKind::InvalidData,
@@ -58,7 +58,7 @@ pub fn check_magic_bytes(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<boo
     }
 }
 
-pub fn get_ifd_offset(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<u32> {
+fn get_ifd_offset(bytes: &[u8], byte_order: &ByteOrder) -> io::Result<u32> {
     if bytes.len() < 8 {
         return Err(Error::new(
             ErrorKind::InvalidData,
