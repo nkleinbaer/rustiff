@@ -35,10 +35,14 @@ fn read_tiff(file_path: &str) {
         }
     };
 
-    let ifd = match parse_ifd(&bytes, header.ifd_offset, header.byte_order) {
+    let ifd = match parse_ifd(
+        &bytes[header.ifd_offset as usize..],
+        header.ifd_offset,
+        header.byte_order,
+    ) {
         Ok(ifd) => ifd,
         Err(e) => {
-            eprintln!("Invalid tiff: {}", e);
+            eprintln!("Invalid tiff: {:#?}", e);
             exit(1);
         }
     };
