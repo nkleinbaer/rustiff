@@ -10,15 +10,18 @@ pub const IFD_FIELD_LENGTH: usize = 12;
 pub struct ImageFileDirectory {
     pub n_fields: u16,
     pub next_ifd_offset: u32,
+    pub fields: Vec<Field>,
 }
 
 pub struct Field {
-    tag: u16,
-    ftype: FieldType,
-    count: u32,
-    offset: u32,
+    pub tag: u16,
+    pub ftype: FieldType,
+    pub count: u32,
+    pub value: Option<u32>,
+    pub offset: Option<u32>,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum FieldType {
     Byte,
     ASCII,
@@ -32,6 +35,38 @@ pub enum FieldType {
     SRational,
     Float,
     Double,
+}
+
+impl FieldType {
+    // Mapping integer codes to enum members
+    fn from_u16(code: u16) -> Option<FieldType> {
+        match code {
+            1 => Some(FieldType::Byte),
+            2 => Some(FieldType::ASCII),
+            3 => Some(FieldType::Short),
+            4 => Some(FieldType::Long),
+            5 => Some(FieldType::Rational),
+            6 => Some(FieldType::SByte),
+            7 => Some(FieldType::Undefined),
+            8 => Some(FieldType::SShort),
+            9 => Some(FieldType::SLong),
+            10 => Some(FieldType::SRational),
+            11 => Some(FieldType::Float),
+            12 => Some(FieldType::Double),
+            _ => None,
+        }
+    }
+
+    // Getting the byte length of data types
+    fn type_length(&self) -> usize {
+        match self {
+            FieldType::Byte | FieldType::SByte | FieldType::ASCII => 1,
+            FieldType::Short | FieldType::SShort => 2,
+            FieldType::Long | FieldType::SLong | FieldType::Float => 4,
+            FieldType::Rational | FieldType::SRational | FieldType::Double => 8,
+            FieldType::Undefined => 1, // Undefined can be considered as 1 byte but may vary
+        }
+    }
 }
 
 fn get_n_fields(bytes: &[u8], byte_order: ByteOrder) -> u16 {
@@ -52,6 +87,49 @@ fn get_next_ifd_offset(bytes: &[u8], n_fields: u16, byte_order: ByteOrder) -> u3
         ByteOrder::LittleEndian => u32::from_le_bytes(next_ifd_offset),
         ByteOrder::BigEndian => u32::from_be_bytes(next_ifd_offset),
     }
+}
+
+fn get_fields(bytes: &[u8], byte_order: ByteOrder, n_fields: u16) -> Result<Vec<Field>, TiffError> {
+    let mut fields = Vec::new();
+
+    let mut pointer: usize = 2;
+    for i in 0..n_fields {
+        let tag_bytes: [u8; 2] = bytes[pointer..pointer + 2].try_into().unwrap();
+        let ftype_bytes: [u8; 2] = bytes[pointer + 2..pointer + 4].try_into().unwrap();
+        let count_bytes: [u8; 4] = bytes[pointer + 4..pointer + 8].try_into().unwrap();
+        let value_or_offset_bytes: [u8; 4] = bytes[pointer + 8..pointer + 12].try_into().unwrap();
+
+        let tag = u16::from_le_bytes(tag_bytes);
+        let ftype = match FieldType::from_u16(u16::from_le_bytes(ftype_bytes)) {
+            Some(field_type) => field_type,
+            None => return Err(TiffError::new(TiffErrorKind::InvalidIFD)),
+        };
+        let count = u32::from_le_bytes(count_bytes);
+        let value_or_offset = u32::from_le_bytes(value_or_offset_bytes);
+
+        let field = Field {
+            tag,
+            ftype,
+            count,
+            value: None,
+            offset: None,
+        };
+
+        if (count as usize) * ftype.type_length() <= 4 {
+            fields.push(Field {
+                value: Some(value_or_offset),
+                ..field
+            });
+        } else {
+            fields.push(Field {
+                offset: Some(value_or_offset),
+                ..field
+            });
+        };
+
+        pointer += 12;
+    }
+    Ok(fields)
 }
 
 pub fn parse_ifd(
@@ -75,8 +153,11 @@ pub fn parse_ifd(
 
     let next_ifd_offset = get_next_ifd_offset(&bytes, n_fields, byte_order);
 
+    let fields = get_fields(bytes, byte_order, n_fields)?;
+
     Ok(ImageFileDirectory {
         n_fields,
         next_ifd_offset,
+        fields,
     })
 }

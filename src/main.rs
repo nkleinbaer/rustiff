@@ -53,7 +53,26 @@ First IFD is at offset: {:#010x}
 First IFD contains {} fields
 Next IFD is at offset: {:#010x}",
         header.byte_order, header.ifd_offset, ifd.n_fields, ifd.next_ifd_offset
-    )
+    );
+
+    for (i, &ref field) in ifd.fields.iter().enumerate() {
+        println!(
+            "Field {}:
+    Tag: {}
+    Type: {:#?}
+    Count: {}",
+            i, field.tag, field.ftype, field.count
+        );
+        match field.value {
+            Some(value) => println!("    Value: {}", value),
+            None => (),
+        }
+
+        match field.offset {
+            Some(offset) => println!("    Offset: {}", offset),
+            None => (),
+        }
+    }
 }
 
 fn help() {
